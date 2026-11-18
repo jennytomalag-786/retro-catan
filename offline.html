@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retro: El Camino de los Colonos</title>
+<style>
+:root{--bg:#1d2a35;--panel:#263746;--ink:#f4efe3;--muted:#9fb3c4;--gold:#f2b134}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#14202a;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;flex:1;min-width:220px}
+.clock{font-variant-numeric:tabular-nums;font-size:20px;background:#0c141b;padding:4px 12px;border-radius:8px}
+button{cursor:pointer;border:0;border-radius:8px;padding:8px 12px;font-weight:600;background:var(--gold);color:#222}
+button.sec{background:#3b5368;color:var(--ink)}
+button:hover{filter:brightness(1.1)}
+nav{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;background:#1a2733}
+nav button{background:#2c4153;color:var(--ink);white-space:nowrap}
+nav button.on{background:var(--gold);color:#222}
+main{display:grid;grid-template-columns:minmax(380px,1fr) minmax(380px,1.2fr);gap:16px;padding:16px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border-radius:14px;padding:16px}
+h2{margin:0 0 8px;font-size:20px}
+.muted{color:var(--muted);font-size:14px}
+/* board */
+.sea{background:radial-gradient(circle,#2b6e8f,#1b4a64);border-radius:50%;padding:28px 10px;display:flex;flex-direction:column;align-items:center;aspect-ratio:1/1;justify-content:center;max-width:520px;margin:auto}
+.row{display:flex;margin-top:-18px}.row:first-child{margin-top:0}
+.hex{width:120px;height:138px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 2px;cursor:pointer;transition:transform .2s,filter .2s;position:relative;color:#222;font-weight:700;text-align:center}
+.hex:hover{transform:scale(1.05)}
+.hex .e{font-size:34px}.hex .n{font-size:12px}
+.hex .tok{background:#f6e7c1;border-radius:50%;font-size:12px;padding:2px 7px;margin-top:2px}
+.hex .cnt{position:absolute;top:18px;right:30px;background:#c0392b;color:#fff;border-radius:50%;font-size:11px;min-width:20px;height:20px;line-height:20px}
+.hex.active{filter:drop-shadow(0 0 0 #fff) brightness(1.25);animation:pulse 1s infinite}
+.hex.done{opacity:.55}
+@keyframes pulse{50%{transform:scale(1.09)}}
+.trigo{background:#f2d04b}.ladrillo{background:#d2693f}.oveja{background:#a8e08a}.madera{background:#4f8a4b}.mineral{background:#9aa5b1}.ladron{background:#222;color:#eee}.ciudad{background:#e9c46a}
+/* dice */
+.dice{display:flex;gap:16px;justify-content:center;margin:12px 0}
+.die{width:72px;height:72px;background:#fff;color:#222;border-radius:14px;font-size:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #bbb}
+.die.roll{animation:shake .12s infinite}
+@keyframes shake{25%{transform:rotate(-12deg) translateY(-4px)}75%{transform:rotate(12deg)}}
+.result{text-align:center;min-height:60px}
+.big{font-size:22px;font-weight:700}
+/* notes */
+.notes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.note{background:#fff3a3;color:#222;padding:8px 10px;border-radius:4px;width:150px;font-size:13px;box-shadow:2px 3px 5px #0006;position:relative;transform:rotate(var(--r,0deg))}
+.note.black{background:#222;color:#eee;border:1px solid #666}
+.note .v{display:block;margin-top:6px;font-size:12px}
+.note .v button{padding:2px 8px;font-size:12px}
+.note .x{position:absolute;top:2px;right:4px;background:none;padding:0;color:#888;font-size:14px}
+input,select,textarea{width:100%;padding:8px;border-radius:8px;border:0;margin:4px 0;font:inherit}
+.inline{display:flex;gap:8px}.inline>*{flex:1}.inline button{flex:0 0 auto}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;background:#3b5368;font-size:12px;margin-right:4px}
+.overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:9;text-align:center;font-size:28px}
+.overlay.show{display:flex}.overlay div{animation:pulse .6s infinite}
+.hidden{display:none}
+.progress{display:flex;gap:6px;margin:6px 0}.progress span{flex:1;height:8px;border-radius:4px;background:#3b5368}.progress span.ok{background:var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏝️ Retro: El Camino de los Colonos</h1>
+  <span class="clock" id="clock">60:00</span>
+  <button id="clkBtn">▶ Iniciar sesión (60 min)</button>
+  <button class="sec" id="exportBtn">⬇ Exportar acta</button>
+  <button class="sec" id="resetBtn">🗑 Reiniciar</button>
+</header>
+<nav id="nav"></nav>
+<main>
+  <section class="card">
+    <h2>Isla del sprint</h2>
+    <div class="muted">Haz clic en un hexágono para ver y agregar notas de ese recurso.</div>
+    <div class="sea" id="board"></div>
+  </section>
+  <section class="card" id="panel"></section>
+</main>
+<div class="overlay" id="thief"><div>🦹<br><b>¡LLEGÓ EL LADRÓN!</b><br><small>Nadie se mueve. Pasamos a la fase del Ladrón…</small></div></div>
+
+<script>
+const RES = {
+  trigo:{e:'🌾',n:'Trigo',q:'¿Qué nos alimentó este sprint? (logros, cosas buenas)',tok:'2-3'},
+  ladrillo:{e:'🧱',n:'Ladrillo',q:'¿Qué prácticas o hábitos nos dieron solidez?',tok:'4-5'},
+  oveja:{e:'🐑',n:'Oveja',q:'¿Qué oportunidad o idea dejamos pastando?',tok:'6'},
+  madera:{e:'🪵',n:'Madera',q:'¿Qué nos frenó o nos quemó?',tok:'8-9'},
+  mineral:{e:'⛏️',n:'Mineral',q:'¿Qué necesitamos para ser más fuertes?',tok:'10-12'},
+  ladron:{e:'🦹',n:'Ladrón',q:'¿Qué es lo que nadie dice en voz alta pero nos roba recursos?',tok:'7'},
+  ciudad:{e:'🏰',n:'Ciudad',q:'Aquí se construyen las acciones',tok:''}
+};
+const LAYOUT=[['trigo','ladrillo'],['oveja','ladron','madera'],['mineral','ciudad']];
+const PHASES=[
+ {id:'llegada',t:'1. Llegada',m:5},{id:'dados',t:'2. Dados',m:15},{id:'ladron',t:'3. Ladrón',m:8},
+ {id:'comercio',t:'4. Comercio',m:14},{id:'ciudad',t:'5. Ciudad',m:10},{id:'cierre',t:'6. Cierre',m:8}];
+const RETOS=['Describe tu sprint solo con un gesto','Explica tu último bug como si fuera un cuento de hadas','Habla como comerciante medieval 20 segundos','Imita a tu Daily Scrum con un sonido','Resume el sprint en un emoji y defiéndelo','Di un halago sincero a quien tengas a tu derecha en la pantalla'];
+const NOMBRES=['Los Deployadores','Las Bug Hunters','Team Hotfix','Los Refactorianos','Las Pull Requesters'];
+
+const blank=()=>({phase:'llegada',notes:{trigo:[],ladrillo:[],oveja:[],madera:[],mineral:[]},thief:[],proposals:[],
+  played:[],round:0,last:null,sel:'trigo',start:null,roti:{},awards:{},names:[],actions:[]});
+let S=JSON.parse(localStorage.getItem('retroCatan')||'null')||blank();
+const save=()=>localStorage.setItem('retroCatan',JSON.stringify(S));
+const $=s=>document.querySelector(s);
+const esc=t=>t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* sound */
+function beep(f=600,d=.15,type='square'){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
+
+/* clock */
+let tick;
+function drawClock(){
+  if(!S.start){$('#clock').textContent='60:00';return}
+  const left=Math.max(0,60*60-Math.floor((Date.now()-S.start)/1000));
+  $('#clock').textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
+}
+$('#clkBtn').onclick=()=>{if(!S.start){S.start=Date.now();save();$('#clkBtn').textContent='⏱ En curso'}};
+setInterval(drawClock,1000);
+
+/* nav */
+function drawNav(){
+  $('#nav').innerHTML=PHASES.map(p=>`<button class="${S.phase===p.id?'on':''}" data-p="${p.id}">${p.t} (${p.m}')</button>`).join('');
+  document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{S.phase=b.dataset.p;save();render()});
+}
+
+/* board */
+function drawBoard(){
+  $('#board').innerHTML=LAYOUT.map(r=>`<div class="row">`+r.map(k=>{
+    const R=RES[k],c=(S.notes[k]||[]).length+(k==='ladron'?S.thief.length:0)+(k==='ciudad'?S.proposals.length:0);
+    return `<div class="hex ${k} ${S.sel===k?'active':''} ${S.played.includes(k)?'done':''}" data-k="${k}">
+      ${c?`<span class="cnt">${c}</span>`:''}<span class="e">${R.e}</span><span class="n">${R.n}</span>${R.tok?`<span class="tok">${R.tok}</span>`:''}</div>`}).join('')+`</div>`).join('');
+  document.querySelectorAll('.hex').forEach(h=>h.onclick=()=>{S.sel=h.dataset.k;save();
+    if(S.sel==='ladron')S.phase='ladron'; else if(S.sel==='ciudad')S.phase='ciudad'; else S.phase='dados';
+    render()});
+}
+
+/* notes */
+function noteHTML(n,list,i,black){
+  return `<div class="note ${black?'black':''}" style="--r:${(i*37%7)-3}deg"><button class="x" data-del="${list}:${i}">×</button>${esc(n.t)}
+  <span class="v"><button data-vote="${list}:${i}">👍 ${n.v||0}</button></span></div>`;
+}
+function bindNotes(){
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const[l,i]=b.dataset.del.split(':');getList(l).splice(+i,1);save();render()});
+  document.querySelectorAll('[data-vote]').forEach(b=>b.onclick=()=>{const[l,i]=b.dataset.vote.split(':');const n=getList(l)[+i];n.v=(n.v||0)+1;beep(880,.06,'sine');save();render()});
+}
+function getList(l){return l==='thief'?S.thief:l==='prop'?S.proposals:S.notes[l]}
+function addNote(list,text){if(!text.trim())return;getList(list).push({t:text.trim(),v:0});beep(700,.08,'sine');save();render()}
+
+/* dice */
+const face=n=>['','⚀','⚁','⚂','⚃','⚄','⚅'][n];
+function resFor(s){return s<=3?'trigo':s<=5?'ladrillo':s===6?'oveja':s===7?'ladron':s<=9?'madera':'mineral'}
+function roll(){
+  const d1=$('#d1'),d2=$('#d2');d1.classList.add('roll');d2.classList.add('roll');
+  let n=0;const iv=setInterval(()=>{d1.textContent=face(1+Math.random()*6|0);d2.textContent=face(1+Math.random()*6|0);beep(300+n*20,.04);
+    if(++n>10){clearInterval(iv);d1.classList.remove('roll');d2.classList.remove('roll');
+      const a=1+Math.random()*6|0,b=1+Math.random()*6|0;d1.textContent=face(a);d2.textContent=face(b);resolve(a+b,a,b)}},90);
+}
+function resolve(sum){
+  const k=resFor(sum);S.last={sum,k};
+  if(k==='ladron'){beep(120,.6,'sawtooth');$('#thief').classList.add('show');
+    setTimeout(()=>{$('#thief').classList.remove('show');S.sel='ladron';S.phase='ladron';save();render()},2200);save();return}
+  if(S.played.includes(k)){S.last.repeat=true;beep(200,.2);save();render();return}
+  S.played.push(k);S.sel=k;S.round++;beep(1000,.2,'sine');save();render();
+}
+
+/* panels */
+function panel(){
+  const p=S.phase,P=$('#panel');
+  if(p==='llegada'){
+    const nm=S.names;
+    P.innerHTML=`<h2>🏝️ Llegada a la isla (5 min)</h2>
+    <p>1. Cada persona cambia su nombre en la videollamada a un <b>nombre de colono</b> (ej. "Ana la Bugslayer").<br>
+    2. Rompehielos en el chat, todos a la vez: <i>"Si tu sprint fuera un recurso de Catan, ¿cuál sería y por qué?"</i><br>
+    3. Objetivo de hoy: <b>salir con 2–3 acciones concretas</b>.<br>
+    4. Regla: lo que se dice aquí, queda aquí.</p>
+    <div class="card" style="background:#1d2a35"><b>Tabla de recursos</b><br>${Object.entries(RES).filter(([k])=>k!=='ciudad').map(([k,r])=>`<div>${r.e} <b>${r.n}</b> (${r.tok}): ${r.q}</div>`).join('')}</div>
+    <p><button id="go">Empezar a tirar dados →</button></p>
+    <hr><b>🎲 Generador de nombres de colonias</b>
+    <div class="inline"><button class="sec" id="gn">Sortear 3 colonias</button></div>
+    <div>${nm.map(n=>`<span class="tag">${n}</span>`).join('')}</div>`;
+    $('#go').onclick=()=>{S.phase='dados';save();render()};
+    $('#gn').onclick=()=>{S.names=[...NOMBRES].sort(()=>Math.random()-.5).slice(0,3);save();render()};
+  }
+  if(p==='dados'){
+    const k=S.sel&&S.sel!=='ladron'&&S.sel!=='ciudad'?S.sel:'trigo',R=RES[k];
+    const l=S.last;
+    P.innerHTML=`<h2>🎲 Tirada de dados (15 min)</h2>
+    <div class="progress">${[0,1,2,3,4].map(i=>`<span class="${i<S.round?'ok':''}"></span>`).join('')}</div>
+    <div class="muted">Ronda ${Math.min(S.round+1,5)} de 5 · 2 min de notas en silencio por recurso · el Ladrón (7) interrumpe.</div>
+    <div class="dice"><div class="die" id="d1">${l?'🎲':'⚀'}</div><div class="die" id="d2">${l?'🎲':'⚁'}</div></div>
+    <div class="result">${l?`<div class="big">Suma ${l.sum} → ${RES[l.k].e} ${RES[l.k].n}</div>${l.repeat?'<div>Ya jugamos ese recurso. ¡Tira de nuevo!</div>':''}`:'<div class="muted">Pulsa para lanzar</div>'}</div>
+    <div style="text-align:center"><button id="roll" ${S.round>=5?'disabled':''}>🎲 Lanzar dados</button>
+    <button class="sec" id="t2">⏱ Timer 2:00</button> <span class="clock" id="t2c">2:00</span></div>
+    <hr>
+    <h2>${R.e} ${R.n}</h2><div>${R.q}</div>
+    <div class="inline"><input id="ni" placeholder="Escribe tu nota y Enter"><button id="na">Agregar</button></div>
+    <div class="muted">Tip: el facilitador pega aquí lo que el equipo escribe en el chat, o cada quien comparte pantalla por turnos.</div>
+    <div class="notes">${S.notes[k].map((n,i)=>noteHTML(n,k,i)).join('')}</div>
+    <hr><button class="sec" id="reto">🃏 Carta anti-silencio</button> <span id="retot"></span>
+    <p class="muted">Recurso mostrado: toca otro hexágono del tablero para cambiar.</p>`;
+    $('#roll').onclick=roll;
+    $('#na').onclick=()=>addNote(k,$('#ni').value);
+    $('#ni').onkeydown=e=>{if(e.key==='Enter')addNote(k,e.target.value)};
+    $('#reto').onclick=()=>{$('#retot').textContent=RETOS[Math.random()*RETOS.length|0];beep(500,.1)};
+    $('#t2').onclick=()=>timer($('#t2c'),120);
+  }
+  if(p==='ladron'){
+    const sorted=S.thief.map((n,i)=>({n,i})).sort((a,b)=>(b.n.v||0)-(a.n.v||0));
+    P.innerHTML=`<h2>🦹 ¡Llegó el Ladrón! (8 min)</h2>
+    <p><b>${RES.ladron.q}</b></p>
+    <p class="muted">Anónimo: cada persona envía su nota por chat privado al facilitador, o abre esta página en su propio navegador y copia el resultado. El facilitador las agrega aquí; se muestran sin autor.</p>
+    <div class="inline"><input id="ni" placeholder="Nota anónima…"><button id="na">Agregar</button></div>
+    <div class="notes">${sorted.map(x=>noteHTML(x.n,'thief',x.i,true)).join('')}</div>
+    <p>Votación: cada persona tiene <b>3 puntos</b>. Pulsa 👍 por cada voto. Las más votadas suben primero.</p>
+    ${sorted[0]&&sorted[0].n.v?`<div class="card" style="background:#3a1d1d">🦹 El Ladrón principal: <b>${esc(sorted[0].n.t)}</b></div>`:''}`;
+    $('#na').onclick=()=>addNote('thief',$('#ni').value);
+    $('#ni').onkeydown=e=>{if(e.key==='Enter')addNote('thief',e.target.value)};
+  }
+  if(p==='comercio'){
+    const top=(k)=>[...S.notes[k]].sort((a,b)=>b.v-a.v).slice(0,3);
+    P.innerHTML=`<h2>🤝 Comercio entre colonias (14 min)</h2>
+    <p>3 salas, 5 personas cada una. 10 min para agrupar notas, sacar <b>1 insight</b> y <b>1 propuesta</b>. Después, 1 min de <b>pitch de comerciante medieval</b> por colonia.</p>
+    <div class="inline">
+      <div class="card" style="background:#1d2a35"><b>Colonia A</b><br>🌾 Trigo + 🧱 Ladrillo</div>
+      <div class="card" style="background:#1d2a35"><b>Colonia B</b><br>🪵 Madera + 🐑 Oveja</div>
+      <div class="card" style="background:#1d2a35"><b>Colonia C</b><br>⛏️ Mineral + 🦹 Ladrón</div></div>
+    <button id="tc">⏱ Timer 10:00</button> <span class="clock" id="t2c">10:00</span>
+    <hr><b>Notas más votadas por recurso</b>
+    ${Object.keys(S.notes).map(k=>`<div>${RES[k].e} ${top(k).map(n=>`<span class="tag">${esc(n.t)} (${n.v})</span>`).join('')||'<span class="muted">sin notas</span>'}</div>`).join('')}
+    <p class="muted">Frase de pitch: "¡Ofrezco 2 de madera por una reunión menos al día!"</p>
+    <button id="go">Ir a construir la Ciudad →</button>`;
+    $('#tc').onclick=()=>timer($('#t2c'),600);
+    $('#go').onclick=()=>{S.phase='ciudad';S.sel='ciudad';save();render()};
+  }
+  if(p==='ciudad'){
+    const icon={camino:'🛣️',poblado:'🏠',ciudad:'🏰'};
+    const sorted=S.proposals.map((n,i)=>({n,i})).sort((a,b)=>(b.n.v||0)-(a.n.v||0));
+    P.innerHTML=`<h2>🏘️ Construcción de la Ciudad (10 min)</h2>
+    <p class="muted">🛣️ Camino = acción pequeña (≤1 sprint) · 🏠 Poblado = mejora media · 🏰 Ciudad = cambio estructural. 3 puntos por persona.</p>
+    <div class="inline"><select id="ty"><option value="camino">🛣️ Camino</option><option value="poblado">🏠 Poblado</option><option value="ciudad">🏰 Ciudad</option></select></div>
+    <input id="pt" placeholder="Propuesta de mejora">
+    <div class="inline"><input id="po" placeholder="Dueño"><input id="pd" placeholder="Fecha (ej. 25/11)"><input id="ps" placeholder="Señal de éxito"></div>
+    <button id="pa">Construir</button>
+    <div>${sorted.map((x,r)=>`<div class="card" style="background:${r<3&&x.n.v?'#3d5a2a':'#1d2a35'};margin-top:8px">
+      ${icon[x.n.ty]} <b>${esc(x.n.t)}</b> ${r<3&&x.n.v?'⭐':''}<br>
+      <span class="tag">👤 ${esc(x.n.o||'sin dueño')}</span><span class="tag">📅 ${esc(x.n.d||'sin fecha')}</span><span class="tag">✅ ${esc(x.n.s||'sin señal')}</span>
+      <div><button data-vote="prop:${x.i}">👍 ${x.n.v||0}</button> <button class="sec" data-del="prop:${x.i}">Quitar</button></div></div>`).join('')}</div>
+    <p><button id="go">Ir al cierre →</button></p>`;
+    $('#pa').onclick=()=>{const t=$('#pt').value.trim();if(!t)return;S.proposals.push({t,ty:$('#ty').value,o:$('#po').value,d:$('#pd').value,s:$('#ps').value,v:0});beep(600,.1);save();render()};
+    $('#go').onclick=()=>{S.phase='cierre';save();render()};
+  }
+  if(p==='cierre'){
+    const aw=[['🛤️','Camino más largo','quien más ayudó a otros'],['⚔️','Mayor ejército','quien más impedimentos eliminó'],['🎲','Dados de oro','más suerte o ingenio']];
+    const vals=Object.values(S.roti),avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):'-';
+    P.innerHTML=`<h2>🏆 Cierre y premios (8 min)</h2>
+    ${aw.map(([e,t,d],i)=>`<div class="inline"><div>${e} <b>${t}</b><br><span class="muted">${d}</span></div><input data-aw="${i}" placeholder="Ganador/a" value="${esc(S.awards[i]||'')}"></div>`).join('')}
+    <hr><b>ROTI (¿valió la pena el tiempo?)</b>
+    <div class="inline" style="margin:8px 0">${[1,2,3,4,5].map(n=>`<button class="sec" data-roti="${n}">${n} (${vals.filter(v=>v===n).length})</button>`).join('')}</div>
+    <div>Promedio: <b>${avg}</b> · votos: ${vals.length}</div>
+    <p class="muted">Pulsa el número por cada persona que vota (se cuenta en este tablero).</p>
+    <hr><b>Cierre de 1 palabra:</b> cada persona escribe en el chat cómo se va.
+    <p><button id="ex">⬇ Exportar acta (Markdown)</button></p>`;
+    document.querySelectorAll('[data-aw]').forEach(i=>i.oninput=()=>{S.awards[i.dataset.aw]=i.value;save()});
+    document.querySelectorAll('[data-roti]').forEach(b=>b.onclick=()=>{S.roti[Date.now()+Math.random()]=+b.dataset.roti;save();render()});
+    $('#ex').onclick=exportMd;
+  }
+  bindNotes();
+}
+
+let tm;
+function timer(el,sec){
+  clearInterval(tm);let s=sec;const draw=()=>el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');draw();
+  tm=setInterval(()=>{s--;draw();if(s<=10&&s>0)beep(900,.05);if(s<=0){clearInterval(tm);beep(400,.6,'triangle');el.textContent='¡Tiempo!'}},1000);
+}
+
+function exportMd(){
+  let m='# Acta Retro: El Camino de los Colonos\n\n';
+  for(const k of Object.keys(S.notes)){m+=`## ${RES[k].e} ${RES[k].n}\n`+(S.notes[k].map(n=>`- ${n.t} (${n.v} votos)`).join('\n')||'_sin notas_')+'\n\n'}
+  m+='## 🦹 El Ladrón\n'+(S.thief.map(n=>`- ${n.t} (${n.v} votos)`).join('\n')||'_sin notas_')+'\n\n';
+  m+='## 🏘️ Acciones\n| Tipo | Acción | Dueño | Fecha | Señal de éxito | Votos |\n|---|---|---|---|---|---|\n'+
+    [...S.proposals].sort((a,b)=>b.v-a.v).map(p=>`| ${p.ty} | ${p.t} | ${p.o||''} | ${p.d||''} | ${p.s||''} | ${p.v} |`).join('\n')+'\n\n';
+  m+='## 🏆 Premios\n'+['Camino más largo','Mayor ejército','Dados de oro'].map((t,i)=>`- ${t}: ${S.awards[i]||'-'}`).join('\n');
+  const vals=Object.values(S.roti);if(vals.length)m+=`\n\n## ROTI\nPromedio ${(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)} (${vals.length} votos)`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m],{type:'text/markdown'}));a.download='acta-retro-catan.md';a.click();
+}
+$('#exportBtn').onclick=exportMd;
+$('#resetBtn').onclick=()=>{if(confirm('¿Borrar todo el tablero y empezar de cero?')){S=blank();save();render()}};
+
+function render(){drawNav();drawBoard();panel();drawClock();if(S.start)$('#clkBtn').textContent='⏱ En curso'}
+render();
+</script>
+</body>
+</html>

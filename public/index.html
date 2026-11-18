@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retro: El Camino de los Colonos</title>
+<style>
+:root{--bg:#1d2a35;--panel:#263746;--ink:#f4efe3;--muted:#9fb3c4;--gold:#f2b134}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#14202a;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;flex:1;min-width:200px}
+.clock{font-variant-numeric:tabular-nums;font-size:18px;background:#0c141b;padding:4px 10px;border-radius:8px}
+.clock.tm{background:#5b3b0c}
+button{cursor:pointer;border:0;border-radius:8px;padding:8px 12px;font-weight:600;background:var(--gold);color:#222;font-family:inherit}
+button.sec{background:#3b5368;color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+button:not(:disabled):hover{filter:brightness(1.1)}
+nav{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;background:#1a2733}
+nav button{background:#2c4153;color:var(--ink);white-space:nowrap}
+nav button.on{background:var(--gold);color:#222}
+main{display:grid;grid-template-columns:minmax(360px,1fr) minmax(380px,1.2fr);gap:16px;padding:16px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border-radius:14px;padding:16px}
+.card.in{background:#1d2a35;margin-top:8px}
+h2{margin:0 0 8px;font-size:20px}
+.muted{color:var(--muted);font-size:14px}
+.sea{background:radial-gradient(circle,#2b6e8f,#1b4a64);border-radius:50%;padding:28px 10px;display:flex;flex-direction:column;align-items:center;aspect-ratio:1/1;justify-content:center;max-width:520px;margin:auto}
+.row{display:flex;margin-top:-18px}.row:first-child{margin-top:0}
+.hex{width:120px;height:138px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 2px;cursor:pointer;transition:transform .2s;position:relative;color:#222;font-weight:700;text-align:center}
+.hex:hover{transform:scale(1.05)}
+.hex .e{font-size:34px}.hex .n{font-size:12px}
+.hex .tok{background:#f6e7c1;border-radius:50%;font-size:12px;padding:2px 7px;margin-top:2px}
+.hex .cnt{position:absolute;top:18px;right:30px;background:#c0392b;color:#fff;border-radius:50%;font-size:11px;min-width:20px;height:20px;line-height:20px}
+.hex.active{filter:brightness(1.25);animation:pulse 1s infinite}
+.hex.done{opacity:.55}
+@keyframes pulse{50%{transform:scale(1.09)}}
+.trigo{background:#f2d04b}.ladrillo{background:#d2693f}.oveja{background:#a8e08a}.madera{background:#4f8a4b}.mineral{background:#9aa5b1}.ladron{background:#222;color:#eee}.ciudad{background:#e9c46a}
+.dice{display:flex;gap:16px;justify-content:center;margin:12px 0}
+.die{width:72px;height:72px;background:#fff;color:#222;border-radius:14px;font-size:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #bbb}
+.die.roll{animation:shake .12s infinite}
+@keyframes shake{25%{transform:rotate(-12deg) translateY(-4px)}75%{transform:rotate(12deg)}}
+.result{text-align:center;min-height:56px}.big{font-size:22px;font-weight:700}
+.notes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.note{background:#fff3a3;color:#222;padding:8px 10px;border-radius:4px;width:158px;font-size:13px;box-shadow:2px 3px 5px #0006;position:relative;transform:rotate(var(--r,0deg));word-wrap:break-word}
+.note.black{background:#222;color:#eee;border:1px solid #666}
+.note .v{display:flex;gap:4px;align-items:center;margin-top:6px;font-size:12px}
+.note .v button{padding:1px 8px;font-size:12px}
+.note .x{position:absolute;top:2px;right:4px;background:none;padding:0;color:#888;font-size:15px}
+input,select{width:100%;padding:8px;border-radius:8px;border:0;margin:4px 0;font:inherit}
+.inline{display:flex;gap:8px;flex-wrap:wrap}.inline>*{flex:1;min-width:90px}.inline>button{flex:0 0 auto}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;background:#3b5368;font-size:12px;margin:2px 4px 2px 0}
+.overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:9;text-align:center;font-size:30px}
+.overlay.show{display:flex}.overlay div{animation:pulse .6s infinite}
+.progress{display:flex;gap:6px;margin:6px 0}.progress span{flex:1;height:8px;border-radius:4px;background:#3b5368}.progress span.ok{background:var(--gold)}
+.pts{background:#0c141b;border-radius:10px;padding:2px 10px;font-size:13px}
+.login{max-width:420px;margin:60px auto}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#c0392b;padding:8px 16px;border-radius:8px;display:none;z-index:10}
+.conn{width:10px;height:10px;border-radius:50%;background:#e74c3c;display:inline-block}.conn.ok{background:#2ecc71}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="overlay" id="thief"><div>🦹<br><b>¡LLEGÓ EL LADRÓN!</b><br><small>Nadie se mueve…</small></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const RES={
+ trigo:{e:'🌾',n:'Trigo',q:'¿Qué nos alimentó este sprint? (logros, cosas buenas)',tok:'2-3'},
+ ladrillo:{e:'🧱',n:'Ladrillo',q:'¿Qué prácticas o hábitos nos dieron solidez?',tok:'4-5'},
+ oveja:{e:'🐑',n:'Oveja',q:'¿Qué oportunidad o idea dejamos pastando?',tok:'6'},
+ madera:{e:'🪵',n:'Madera',q:'¿Qué nos frenó o nos quemó?',tok:'8-9'},
+ mineral:{e:'⛏️',n:'Mineral',q:'¿Qué necesitamos para ser más fuertes?',tok:'10-12'},
+ ladron:{e:'🦹',n:'Ladrón',q:'¿Qué es lo que nadie dice en voz alta pero nos roba recursos?',tok:'7'},
+ ciudad:{e:'🏰',n:'Ciudad',q:'Aquí se construyen las acciones',tok:''}};
+const LAYOUT=[['trigo','ladrillo'],['oveja','ladron','madera'],['mineral','ciudad']];
+const PHASES=[['llegada','1. Llegada',5],['dados','2. Dados',15],['ladron','3. Ladrón',8],['comercio','4. Comercio',14],['ciudad','5. Ciudad',10],['cierre','6. Cierre',8]];
+const ICON={camino:'🛣️',poblado:'🏠',ciudad:'🏰'};
+const face=n=>['','⚀','⚁','⚂','⚃','⚄','⚅'][n];
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const L=JSON.parse(localStorage.getItem('catanRetro')||'{}');
+if(!L.cid){L.cid=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>(b%36).toString(36)).join('');}
+const saveL=()=>localStorage.setItem('catanRetro',JSON.stringify(L));saveL();
+let V=null,es=null,offset=0,connected=false,localSel=null,rolling=false,faces=[1,2],lastRoll=null,lastSel=null,lastTimerEnd=null;
+
+/* sonido */
+function beep(f=600,d=.15,type='square'){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;g.gain.value=.07;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2500)}
+
+/* red */
+async function post(path,body){
+  try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room:L.room,cid:L.cid,...body})});
+    const j=await r.json();if(!r.ok)toast(j.error||'Error');return j}catch(e){toast('Sin conexión');}
+}
+const act=(type,o={})=>post('/api/act',{type,...o});
+function connect(){
+  if(es)es.close();
+  const q=new URLSearchParams({room:L.room,cid:L.cid,name:L.name||''});if(L.fk)q.set('fk',L.fk);
+  es=new EventSource('/events?'+q);
+  es.onopen=()=>{connected=true;drawConn()};
+  es.onerror=()=>{connected=false;drawConn();if(es.readyState===2){es.close();delete L.room;saveL();V=null;login('No encontré esa sala (¿expiró o el servidor se reinició?).')}};
+  es.onmessage=e=>onState(JSON.parse(e.data));
+}
+function onState(s){
+  offset=s.now-Date.now();
+  const first=V===null;V=s;
+  if(s.sel!==lastSel){localSel=null;lastSel=s.sel}
+  if(s.roll&&s.roll.id!==lastRoll){lastRoll=s.roll.id;if(!first)animateRoll(s.roll);}
+  else if(!s.roll)lastRoll=null;
+  render();
+}
+async function boot(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('room'))L.room=p.get('room').toUpperCase();
+  if(p.get('fk'))L.fk=p.get('fk');
+  if(p.get('room')||p.get('fk')){history.replaceState({},'',location.pathname)}
+  saveL();
+  if(L.room&&L.name)connect();else login();
+}
+
+/* login */
+function login(msg){
+  $('#app').innerHTML=`<div class="card login"><h2>🏝️ El Camino de los Colonos</h2>
+  <p class="muted">Retrospectiva en tiempo real. Elige tu nombre de colono (ej. "Ana la Bugslayer").</p>
+  <input id="nm" maxlength="24" placeholder="Tu nombre de colono" value="${esc(L.name||'')}">
+  <input id="rc" maxlength="4" placeholder="Código de sala (4 letras)" value="${esc(L.room||'')}" style="text-transform:uppercase">
+  ${msg?`<p style="color:#ff8a80">${esc(msg)}</p>`:''}
+  <div class="inline"><button id="join">Unirme</button><button class="sec" id="mk">Crear sala (facilitador)</button></div></div>`;
+  $('#join').onclick=()=>{const n=$('#nm').value.trim(),r=$('#rc').value.trim().toUpperCase();if(!n||r.length!==4)return toast('Pon tu nombre y el código de 4 letras');L.name=n;L.room=r;saveL();connect()};
+  $('#mk').onclick=async()=>{const n=$('#nm').value.trim();if(!n)return toast('Pon tu nombre');L.name=n;const j=await fetch('/api/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cid:L.cid})}).then(r=>r.json());
+    if(!j.code)return toast(j.error||'Error');L.room=j.code;delete L.fk;saveL();connect()};
+}
+
+/* tablero */
+function boardHTML(){
+  const sel=localSel||V.sel;
+  return `<div class="sea">`+LAYOUT.map(r=>`<div class="row">`+r.map(k=>{
+    const R=RES[k];const c=k==='ladron'?V.thief.length:k==='ciudad'?V.props.length:V.notes[k].length;
+    return `<div class="hex ${k} ${sel===k?'active':''} ${V.played.includes(k)?'done':''}" data-hex="${k}">${c?`<span class="cnt">${c}</span>`:''}<span class="e">${R.e}</span><span class="n">${R.n}</span>${R.tok?`<span class="tok">${R.tok}</span>`:''}</div>`}).join('')+`</div>`).join('')+`</div>`;
+}
+
+/* notas */
+function noteHTML(n,pool,i,black,voting){
+  const mine=(V.myVotes[pool]||{})[n.id]||0;
+  const canDel=V.fac||n.mine;
+  return `<div class="note ${black?'black':''}" style="--r:${(i*37%7)-3}deg">${canDel?`<button class="x" data-del="${pool}:${n.id}">×</button>`:''}${esc(n.t)}
+  ${voting?`<div class="v"><button data-vote="${pool}:${n.id}:1">＋</button><b>${n.v}</b>${mine?`<button data-vote="${pool}:${n.id}:-1">－</button><small>(tuyos: ${mine})</small>`:''}</div>`:(n.v?`<div class="v">👍 ${n.v}</div>`:'')}</div>`;
+}
+const left=pool=>V.points-Object.values(V.myVotes[pool]||{}).reduce((a,b)=>a+b,0);
+const ptsHTML=pool=>`<span class="pts">Tus puntos: <b>${left(pool)}</b> de ${V.points}</span>`;
+function addForm(id,ph){return `<div class="inline"><input id="${id}" maxlength="200" placeholder="${ph}"><button data-add="${id}">Agregar</button></div>`}
+function facBtn(label,attrs,cls=''){return V.fac?`<button class="${cls}" ${attrs}>${label}</button>`:''}
+
+/* paneles */
+function panelHTML(){
+  const p=V.phase;
+  if(p==='llegada')return `<h2>🏝️ Llegada a la isla (5 min)</h2>
+  <p>1. Tu nombre de colono ya es tu identidad en el tablero. Cámbialo en la videollamada también.<br>
+  2. Rompehielos en el chat: <i>"Si tu sprint fuera un recurso de Catan, ¿cuál sería y por qué?"</i><br>
+  3. Objetivo de hoy: <b>salir con 2–3 acciones concretas</b>.<br>4. Lo que se dice aquí, queda aquí.</p>
+  <div class="card in"><b>Tabla de recursos</b>${Object.entries(RES).filter(([k])=>k!=='ciudad').map(([k,r])=>`<div>${r.e} <b>${r.n}</b> (${r.tok}): ${r.q}</div>`).join('')}</div>
+  <div class="card in"><b>👥 En la isla (${V.total}):</b><br>${V.online.map(n=>`<span class="tag">${esc(n)}</span>`).join('')}</div>
+  <div class="card in"><b>Sala:</b> <span class="big">${V.code}</span> · <button class="sec" data-copy="1">📋 Copiar enlace para el equipo</button>
+  ${V.fac?`<br><button class="sec" data-copy="fac" style="margin-top:6px">🔑 Copiar enlace de co-facilitador</button>`:''}</div>
+  ${V.fac?`<p><button data-act="start">▶ Iniciar reloj de 60 min</button> <button class="sec" data-act="names">🎲 Sortear 3 colonias</button> <button data-phase="dados">Empezar a tirar dados →</button></p>`:''}
+  <div>${V.names.map(n=>`<span class="tag">${esc(n)}</span>`).join('')}</div>`;
+
+  if(p==='dados'){
+    const k=['ladron','ciudad'].includes(localSel||V.sel)?'trigo':(localSel||V.sel),R=RES[k],l=V.roll;
+    return `<h2>🎲 Tirada de dados (15 min)</h2>
+    <div class="progress">${[0,1,2,3,4].map(i=>`<span class="${i<V.round?'ok':''}"></span>`).join('')}</div>
+    <div class="muted">Ronda ${Math.min(V.round+1,5)} de 5 · notas en silencio durante 2 min · el 7 invoca al Ladrón.</div>
+    <div class="dice"><div class="die ${rolling?'roll':''}" id="d1">${face(rolling||!l?faces[0]:l.d1)}</div><div class="die ${rolling?'roll':''}" id="d2">${face(rolling||!l?faces[1]:l.d2)}</div></div>
+    <div class="result">${rolling?'<div class="big">🎲 …</div>':l?`<div class="big">Suma ${l.sum} → ${RES[l.k].e} ${RES[l.k].n}</div>${l.repeat?'<div>Ese recurso ya se jugó. ¡Tira de nuevo!</div>':''}`:`<div class="muted">${V.fac?'Lanza los dados para empezar':'Esperando al facilitador…'}</div>`}</div>
+    <div style="text-align:center">${V.fac?`<button data-act="roll" ${rolling||V.round>=5?'disabled':''}>🎲 Lanzar dados</button> <button class="sec" data-timer="120">⏱ 2:00</button> <button class="sec" data-act="reto">🃏 Carta anti-silencio</button>`:''}</div>
+    ${V.reto?`<div class="card in">🃏 <b>${esc(V.reto)}</b></div>`:''}
+    <hr><h2>${R.e} ${R.n}</h2><div>${R.q}</div>
+    ${addForm('ni','Escribe tu nota y Enter')}
+    <div class="muted">Las notas aparecen al instante en la pantalla de todos. Toca un hexágono para ver otro recurso${V.fac?' (llevas a todos contigo)':''}.</div>
+    <div class="notes">${V.notes[k].map((n,i)=>noteHTML(n,'note',i,false,false)).join('')}</div>`;
+  }
+  if(p==='ladron')return `<h2>🦹 ¡Llegó el Ladrón! (8 min)</h2><p><b>${RES.ladron.q}</b></p>
+  <p class="muted">Notas 100% anónimas: el servidor no guarda quién las escribe. Reparte tus 3 puntos entre las que más te roban recursos.</p>
+  ${addForm('ni','Nota anónima…')}${ptsHTML('thief')} ${V.fac?'<button class="sec" data-timer="300">⏱ 5:00</button>':''}
+  <div class="notes">${[...V.thief].map((n,i)=>({n,i})).sort((a,b)=>b.n.v-a.n.v).map(x=>noteHTML(x.n,'thief',x.i,true,true)).join('')}</div>
+  ${V.thief[0]&&Math.max(...V.thief.map(n=>n.v))>0?`<div class="card in" style="background:#3a1d1d">🦹 Ladrón principal: <b>${esc([...V.thief].sort((a,b)=>b.v-a.v)[0].t)}</b></div>`:''}
+  ${V.fac?'<p><button data-phase="comercio">Ir al comercio →</button></p>':''}`;
+
+  if(p==='comercio')return `<h2>🤝 Comercio entre colonias (14 min)</h2>
+  <p>3 salas de 5 personas. 10 min para agrupar notas y sacar <b>1 insight</b> y <b>1 propuesta</b>. Luego, 1 min de <b>pitch de comerciante medieval</b> por colonia.</p>
+  <div class="inline"><div class="card in"><b>Colonia A</b><br>🌾 Trigo + 🧱 Ladrillo</div><div class="card in"><b>Colonia B</b><br>🪵 Madera + 🐑 Oveja</div><div class="card in"><b>Colonia C</b><br>⛏️ Mineral + 🦹 Ladrón</div></div>
+  <p>${V.fac?'<button class="sec" data-timer="600">⏱ 10:00</button> ':''}${ptsHTML('note')} <span class="muted">Vota las notas que más importan.</span></p>
+  ${['trigo','ladrillo','oveja','madera','mineral'].map(k=>`<div class="card in"><b>${RES[k].e} ${RES[k].n}</b><div class="notes">${V.notes[k].length?[...V.notes[k]].sort((a,b)=>b.v-a.v).map((n,i)=>noteHTML(n,'note',i,false,true)).join(''):'<span class="muted">sin notas</span>'}</div></div>`).join('')}
+  ${V.fac?'<p><button data-phase="ciudad">Construir la Ciudad →</button></p>':''}`;
+
+  if(p==='ciudad'){const sorted=[...V.props].sort((a,b)=>b.v-a.v);
+    return `<h2>🏘️ Construcción de la Ciudad (10 min)</h2>
+    <p class="muted">🛣️ Camino = acción pequeña (≤1 sprint) · 🏠 Poblado = mejora media · 🏰 Ciudad = cambio estructural.</p>
+    <select id="pty"><option value="camino">🛣️ Camino</option><option value="poblado">🏠 Poblado</option><option value="ciudad">🏰 Ciudad</option></select>
+    <input id="pt" maxlength="200" placeholder="Propuesta de mejora">
+    <div class="inline"><input id="po" maxlength="40" placeholder="Dueño"><input id="pd" maxlength="30" placeholder="Fecha (ej. 25/11)"><input id="ps" maxlength="120" placeholder="Señal de éxito"></div>
+    <p><button data-prop="1">Construir</button> ${ptsHTML('prop')}</p>
+    ${sorted.map((n,r)=>{const mine=V.myVotes.prop[n.id]||0,top=r<3&&n.v>0;return `<div class="card in" style="${top?'background:#3d5a2a':''}">${ICON[n.ty]} <b>${esc(n.t)}</b> ${top?'⭐':''}<br>
+      <span class="tag">👤 ${esc(n.o||'sin dueño')}</span><span class="tag">📅 ${esc(n.d||'sin fecha')}</span><span class="tag">✅ ${esc(n.s||'sin señal')}</span><br>
+      <button data-vote="prop:${n.id}:1">＋</button> <b>${n.v}</b> ${mine?`<button data-vote="prop:${n.id}:-1">－</button>`:''} ${V.fac||n.mine?`<button class="sec" data-del="prop:${n.id}">Quitar</button>`:''}</div>`}).join('')}
+    ${V.fac?'<p><button data-phase="cierre">Ir al cierre →</button></p>':''}`;}
+
+  if(p==='cierre'){const names=['🛤️ Camino más largo (quien más ayudó)','⚔️ Mayor ejército (más impedimentos eliminados)','🎲 Dados de oro (suerte o ingenio)'];
+    return `<h2>🏆 Cierre y premios (8 min)</h2>
+    ${names.map((t,i)=>`<div>${t}</div>${V.fac?`<input data-award="${i}" maxlength="60" placeholder="Ganador/a" value="${esc(V.awards[i])}">`:`<div class="big">${esc(V.awards[i])||'…'}</div>`}`).join('')}
+    <hr><b>ROTI: ¿valió la pena el tiempo?</b>
+    <div class="inline" style="margin:8px 0">${[1,2,3,4,5].map(n=>`<button class="${V.roti.mine===n?'':'sec'}" data-roti="${n}">${n} (${V.roti.counts[n-1]})</button>`).join('')}</div>
+    <div>Promedio: <b>${V.roti.avg?V.roti.avg.toFixed(1):'-'}</b></div>
+    <hr><p>Cierre de 1 palabra: escribe en el chat cómo te vas.</p>
+    <button data-export="1">⬇ Exportar acta (Markdown)</button>`;}
+  return '';
+}
+
+/* render */
+function render(){
+  if(!V)return;
+  // conserva lo que se está escribiendo
+  const keep={},act_=document.activeElement;
+  document.querySelectorAll('#app input,#app select').forEach(i=>{const k=i.id||i.dataset.award&&'aw'+i.dataset.award;if(k)keep[k]=i.value});
+  const fid=act_&&(act_.id||(act_.dataset.award&&'aw'+act_.dataset.award)),ss=act_&&act_.selectionStart;
+  $('#app').innerHTML=`<header><h1>🏝️ El Camino de los Colonos · Sala <b>${V.code}</b></h1>
+    <span class="conn ${connected?'ok':''}" id="conn"></span><span class="muted">👥 ${V.total} · ${esc(L.name)}${V.fac?' (facilitador)':''}</span>
+    <span class="clock tm" id="tmr" style="display:none"></span><span class="clock" id="clk">60:00</span>
+    <button class="sec" data-export="1">⬇ Acta</button>${V.fac?`<button class="sec" data-act="reset">🗑</button>`:''}</header>
+  <nav>${PHASES.map(([id,t,m])=>`<button class="${V.phase===id?'on':''}" ${V.fac?`data-phase="${id}"`:'disabled'}>${t} (${m}')</button>`).join('')}</nav>
+  <main><section class="card"><h2>Isla del sprint</h2><div class="muted">${V.fac?'Tu clic mueve a todo el equipo.':'Toca un hexágono para ver sus notas.'}</div>${boardHTML()}</section>
+  <section class="card" id="panel">${panelHTML()}</section></main>`;
+  for(const [k,v] of Object.entries(keep)){const el=k.startsWith('aw')?document.querySelector(`[data-award="${k.slice(2)}"]`):document.getElementById(k);if(el)el.value=v}
+  if(fid){const el=fid.startsWith('aw')?document.querySelector(`[data-award="${fid.slice(2)}"]`):document.getElementById(fid);if(el){el.focus();try{el.setSelectionRange(ss,ss)}catch(e){}}}
+  tickClocks();
+}
+function drawConn(){const c=$('#conn');if(c)c.className='conn '+(connected?'ok':'')}
+
+/* relojes */
+const mmss=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function tickClocks(){
+  if(!V)return;const now=Date.now()+offset;
+  const clk=$('#clk');if(clk)clk.textContent=V.startedAt?mmss(Math.max(0,3600-Math.floor((now-V.startedAt)/1000))):'60:00';
+  const t=$('#tmr');if(!t)return;
+  if(V.timer){const s=Math.ceil((V.timer.end-now)/1000);
+    if(s>0){t.style.display='';t.textContent=`⏱ ${V.timer.label?V.timer.label+' ':''}${mmss(s)}`;if(s<=10&&s!==tickClocks.last){beep(900,.05)}tickClocks.last=s}
+    else{t.style.display='';t.textContent='⏱ ¡Tiempo!';if(lastTimerEnd!==V.timer.end){lastTimerEnd=V.timer.end;beep(400,.7,'triangle')}}
+  }else t.style.display='none';
+}
+setInterval(tickClocks,500);
+
+/* dados */
+function animateRoll(roll){
+  rolling=true;let n=0;beep(300,.05);
+  const iv=setInterval(()=>{faces=[1+Math.random()*6|0,1+Math.random()*6|0];const a=$('#d1'),b=$('#d2');if(a){a.textContent=face(faces[0]);b.textContent=face(faces[1])}beep(300+n*25,.04);
+    if(++n>11){clearInterval(iv);rolling=false;render();
+      if(roll.k==='ladron'){beep(120,.8,'sawtooth');$('#thief').classList.add('show');setTimeout(()=>$('#thief').classList.remove('show'),3200)}
+      else if(!roll.repeat)beep(1000,.2,'sine');}},90);
+  render();
+}
+
+/* eventos */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,[data-hex]');if(!t||!V)return;const d=t.dataset;
+  if(d.hex){if(V.fac)act('sel',{sel:d.hex});else{localSel=d.hex;if(d.hex==='ladron'||d.hex==='ciudad'){}render()}return}
+  if(d.phase)return act('phase',{phase:d.phase});
+  if(d.act)return(d.act==='reset'&&!confirm('¿Borrar todo y reiniciar la sesión?'))?0:act(d.act);
+  if(d.timer)return act('timer',{sec:+d.timer});
+  if(d.add){const i=$('#'+d.add);if(!i||!i.value.trim())return;const text=i.value;i.value='';
+    if(V.phase==='ladron')act('thief',{text});else act('note',{res:['ladron','ciudad'].includes(localSel||V.sel)?'trigo':(localSel||V.sel),text});beep(700,.08,'sine');return}
+  if(d.prop){const text=$('#pt').value;if(!text.trim())return;act('prop',{text,ty:$('#pty').value,o:$('#po').value,d:$('#pd').value,s:$('#ps').value});['pt','po','pd','ps'].forEach(x=>$('#'+x).value='');return}
+  if(d.vote){const[pool,id,dl]=d.vote.split(':');beep(880,.05,'sine');return act('vote',{pool,id,d:+dl})}
+  if(d.del){const[pool,id]=d.del.split(':');return act('del',{pool,id})}
+  if(d.roti)return act('roti',{n:+d.roti});
+  if(d.export)return exportMd();
+  if(d.copy){const u=location.origin+'/?room='+V.code+(d.copy==='fac'?'&fk='+V.facKey:'');navigator.clipboard.writeText(u).then(()=>toast('Enlace copiado'),()=>prompt('Copia el enlace:',u));return}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='ni'){document.querySelector('[data-add="ni"]').click()}});
+document.addEventListener('change',e=>{if(e.target.dataset.award!==undefined)act('award',{i:+e.target.dataset.award,text:e.target.value})});
+
+function exportMd(){
+  let m=`# Acta Retro: El Camino de los Colonos (sala ${V.code})\n\n`;
+  for(const k of ['trigo','ladrillo','oveja','madera','mineral'])m+=`## ${RES[k].e} ${RES[k].n}\n`+(V.notes[k].map(n=>`- ${n.t} (${n.v} votos)`).join('\n')||'_sin notas_')+'\n\n';
+  m+='## 🦹 El Ladrón\n'+(V.thief.map(n=>`- ${n.t} (${n.v} votos)`).join('\n')||'_sin notas_')+'\n\n';
+  m+='## 🏘️ Acciones\n| Tipo | Acción | Dueño | Fecha | Señal de éxito | Votos |\n|---|---|---|---|---|---|\n'+[...V.props].sort((a,b)=>b.v-a.v).map(p=>`| ${p.ty} | ${p.t} | ${p.o||''} | ${p.d||''} | ${p.s||''} | ${p.v} |`).join('\n')+'\n\n';
+  m+='## 🏆 Premios\n'+['Camino más largo','Mayor ejército','Dados de oro'].map((t,i)=>`- ${t}: ${V.awards[i]||'-'}`).join('\n');
+  if(V.roti.avg)m+=`\n\n## ROTI\nPromedio ${V.roti.avg.toFixed(1)}`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m],{type:'text/markdown'}));a.download=`acta-retro-${V.code}.md`;a.click();
+}
+boot();
+</script>
+</body>
+</html>
